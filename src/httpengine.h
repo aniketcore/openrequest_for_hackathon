@@ -106,6 +106,11 @@ namespace HTTP
 
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_body);
                 curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+                if(req->method == GET)
+                    curl_easy_setopt(curl, CURLOPT_HTTPGET,true);
+                else if(req->method == POST)
+                    curl_easy_setopt(curl, CURLOPT_HTTPPOST,true);
+
 
                 curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, write_header);
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &response);

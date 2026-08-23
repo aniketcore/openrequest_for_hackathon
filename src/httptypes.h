@@ -38,6 +38,7 @@ namespace HTTP{
         std::string url;
         std::unordered_map<std::string,std::string> headers;
         std::string body;
+        Method method;
         Response res;
         bool gotheaders = 0;
         bool gotbody = 0;
