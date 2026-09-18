@@ -4,10 +4,32 @@
 #include <algorithm>
 #include "httpengine.h"
 #include <imgui_stdlib.h>
+#include "imgui_helpers.h"
+#include "TextEditor.h"
 #include <stack>
 
 namespace UI
 {
+    namespace
+    {
+        void ConfigureTextEditor(TextEditor& editor, bool readOnly, const TextEditor::Language* language = nullptr)
+        {
+            editor.SetTabSize(2);
+            editor.SetInsertSpacesOnTabs(true);
+            editor.SetAutoIndentEnabled(true);
+            editor.SetReadOnlyEnabled(readOnly);
+            editor.SetShowLineNumbersEnabled(true);
+            editor.SetShowWhitespacesEnabled(false);
+            editor.SetShowMatchingBrackets(true);
+            editor.SetCompletePairedGlyphs(true);
+            editor.SetShowPanScrollIndicatorEnabled(true);
+            if (language != nullptr)
+            {
+                editor.SetLanguage(language);
+            }
+        }
+    }
+
     // Helper function to initialize global tabs vector
     std::vector<std::unique_ptr<Tab>> InitializeTabs()
     {
@@ -25,14 +47,38 @@ namespace UI
     {
         static HTTP::Engine eng;
         static HTTP::Request req;
+        static TextEditor requestEditor;
+        static TextEditor responseEditor;
+        static std::string lastResponseText;
+        static bool requestEditorInitialized = false;
+        static bool responseReadOnly = true;
+
+        ConfigureTextEditor(requestEditor, false, TextEditor::Language::Json());
+        ConfigureTextEditor(responseEditor, true, TextEditor::Language::Json());
+
+        if (!requestEditorInitialized)
+        {
+            requestEditor.SetText(req.body);
+            requestEditorInitialized = true;
+        }
+
+        if (req.gotresponse && req.getresponse().body.has_value())
+        {
+            const auto &body = req.getresponse().body.value();
+            if (body != lastResponseText)
+            {
+                responseEditor.SetText(body);
+                lastResponseText = body;
+            }
+        }
 
         // Clean layout with zero vertical item spacing between panels and splitter
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
         // 1. Top Panel: Request Editor
         ImGui::BeginChild("##request_panel", ImVec2(0.0f, this->requestHeight), false, ImGuiWindowFlags_NoScrollbar);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f)); // restore standard padding inside child
-        
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
+
         ImGui::Text("HTTP Request Settings");
         ImGui::Spacing();
         ImGui::InputText("#URL", &this->url, 0, nullptr, nullptr);
@@ -45,13 +91,23 @@ namespace UI
         }
 
         ImGui::Spacing();
+        ImGui::Text("Request Body");
+        ImGui::Separator();
+
+        ImFont* editorFont = UI::Vulkan::g_MonoFont ? UI::Vulkan::g_MonoFont : ImGui::GetFont();
+        ImGui::PushFont(editorFont);
+        requestEditor.Render("##request_body_editor", ImVec2(-1.0f, 160.0f), true);
+        ImGui::PopFont();
+
+        req.body = requestEditor.GetText();
+        ImGui::Spacing();
+
         if (ImGui::Button("Send Request"))
         {
             req.url = this->url;
-            req.body = "Method: ";
-            req.body += methods[this->method];
             req.method = this->method;
             req.gotresponse = false;
+            req.body = requestEditor.GetText();
 
             eng.dispatchrequest(&req);
             std::cout << "button pressed" << std::endl;
@@ -60,13 +116,12 @@ namespace UI
         ImGui::EndChild();
 
         // 2. Splitter Bar
-        // Render a thin, subtle button line that looks like a divider
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.22f, 0.27f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.35f, 0.40f, 0.50f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.32f, 0.40f, 1.0f));
-        
+
         ImGui::Button("##hsplitter", ImVec2(-1.0f, 4.0f));
-        
+
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
         {
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
@@ -74,15 +129,13 @@ namespace UI
         if (ImGui::IsItemActive())
         {
             this->requestHeight += ImGui::GetIO().MouseDelta.y;
-            // Clamp height limits
             if (this->requestHeight < 80.0f) this->requestHeight = 80.0f;
             float max_height = ImGui::GetContentRegionAvail().y - 80.0f;
             if (this->requestHeight > max_height) this->requestHeight = max_height;
         }
-        
+
         ImGui::PopStyleColor(3);
 
-        // Spacer between splitter and bottom panel
         ImGui::Dummy(ImVec2(0.0f, 8.0f));
 
         // 3. Bottom Panel: Response Area
@@ -95,16 +148,33 @@ namespace UI
 
         if (req.gotresponse)
         {
-            if (req.getresponse().body.has_value())
+            auto &resp = req.getresponse();
+
+            ImGui::BeginGroup();
+            if (ImGui::Button("Copy"))
             {
-                static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
-                ImGui::InputTextMultiline(
-                    "##source",
-                    &req.getresponse().body.value(),
-                    ImVec2(-FLT_MIN, -FLT_MIN),
-                    flags,
-                    nullptr,
-                    nullptr);
+                responseEditor.Copy();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Clear"))
+            {
+                responseEditor.ClearText();
+                if (resp.body.has_value()) resp.body.reset();
+                lastResponseText.clear();
+            }
+            ImGui::SameLine();
+            ImGui::Checkbox("Read-only", &responseReadOnly);
+            ImGui::EndGroup();
+
+            ImGui::Spacing();
+
+            if (resp.body.has_value())
+            {
+                responseEditor.SetReadOnlyEnabled(responseReadOnly);
+                ImFont* editorFont = UI::Vulkan::g_MonoFont ? UI::Vulkan::g_MonoFont : ImGui::GetFont();
+                ImGui::PushFont(editorFont);
+                responseEditor.Render("##response_editor", ImGui::GetContentRegionAvail(), true);
+                ImGui::PopFont();
             }
             else
             {
@@ -119,7 +189,7 @@ namespace UI
         ImGui::PopStyleVar();
         ImGui::EndChild();
 
-        ImGui::PopStyleVar(); // Pop outer ItemSpacing style
+        ImGui::PopStyleVar();
     }
 
     void WsTab::Draw()

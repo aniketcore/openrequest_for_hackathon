@@ -42,6 +42,7 @@ static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
 static ImGui_ImplVulkanH_Window g_MainWindowData;
 static uint32_t                 g_MinImageCount = 2;
 static bool                     g_SwapChainRebuild = false;
+static ImFont* g_MonoFont = nullptr;
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -387,13 +388,11 @@ static GLFWwindow* Initialize(float* out_scale)
     // Enable FreeType font rasterizer
     io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
 
-    // Load scalable vector font instead of pixelated default bitmap font
-#ifdef FONT_PATH
-    ImFont* font = io.Fonts->AddFontFromFileTTF(FONT_PATH, 16.0f);
-    if (!font)
-        io.Fonts->AddFontDefault();
-#else
-    io.Fonts->AddFontDefault();
+// Load custom monospace font for code editor if provided at build time
+#ifdef MONO_FONT_PATH
+    ImFont* mono = io.Fonts->AddFontFromFileTTF(MONO_FONT_PATH, (float)EDITOR_FONT_SIZE);
+    if (mono)
+        g_MonoFont = mono;
 #endif
 
     ImGui::StyleColorsDark();

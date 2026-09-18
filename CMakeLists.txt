@@ -24,6 +24,9 @@ include_directories(${GLFW_DIR}/include)
 # Dear ImGui
 set(IMGUI_DIR ext/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+# ImGuiColorTextEdit
+set(IMGUI_COLOR_TEXT_EDIT_DIR ext/ImGuiColorTextEdit)
+include_directories(${IMGUI_COLOR_TEXT_EDIT_DIR})
 
 # Libraries
 find_package(Vulkan REQUIRED)
@@ -39,6 +42,6 @@ include_directories(${GLFW_DIR}/deps ${IMGUI_DIR}/misc/cpp/)
 # Gather all source files (modified to trigger re-run for new files)
 file(GLOB sources src/*.cpp)
 
-add_executable(openrequest ${sources} ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp)
+add_executable(openrequest ${sources} ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp ${IMGUI_COLOR_TEXT_EDIT_DIR}/TextEditor.cpp)
 target_link_libraries(openrequest ${LIBRARIES})
-target_compile_definitions(openrequest PRIVATE FONT_PATH="${CMAKE_SOURCE_DIR}/ext/imgui/misc/fonts/Roboto-Medium.ttf")
+target_compile_definitions(openrequest PRIVATE FONT_PATH="${CMAKE_SOURCE_DIR}/ext/imgui/misc/fonts/Roboto-Medium.ttf" MONO_FONT_PATH="${CMAKE_SOURCE_DIR}/ext/imgui/misc/fonts/Cousine-Regular.ttf" EDITOR_FONT_SIZE=16)
