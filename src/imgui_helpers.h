@@ -23,6 +23,65 @@
 
 namespace UI::Vulkan
 {
+
+    static void ApplyModernTheme() {
+        ImGuiStyle& style = ImGui::GetStyle();
+        
+        // Exact VS Code Dark+ Theme Color
+        ImVec4* colors = style.Colors;
+        colors[ImGuiCol_Text]                   = ImColor(204, 204, 204, 255); 
+        colors[ImGuiCol_TextDisabled]           = ImColor(128, 128, 128, 255); 
+        colors[ImGuiCol_WindowBg]               = ImColor(30, 30, 30, 255);    // #1e1e1e
+        colors[ImGuiCol_ChildBg]                = ImColor(30, 30, 30, 255);    // #1e1e1e
+        colors[ImGuiCol_PopupBg]                = ImColor(37, 37, 38, 255);    // #252526
+        colors[ImGuiCol_Border]                 = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_BorderShadow]           = ImColor(0, 0, 0, 0);
+        colors[ImGuiCol_FrameBg]                = ImColor(45, 45, 48, 255);    // #2d2d30
+        colors[ImGuiCol_FrameBgHovered]         = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_FrameBgActive]          = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_TitleBg]                = ImColor(37, 37, 38, 255);    // #252526
+        colors[ImGuiCol_TitleBgActive]          = ImColor(37, 37, 38, 255);
+        colors[ImGuiCol_TitleBgCollapsed]       = ImColor(37, 37, 38, 255);
+        colors[ImGuiCol_MenuBarBg]              = ImColor(37, 37, 38, 255);
+        colors[ImGuiCol_ScrollbarBg]            = ImColor(30, 30, 30, 255);
+        colors[ImGuiCol_ScrollbarGrab]          = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_ScrollbarGrabHovered]   = ImColor(79, 79, 83, 255); 
+        colors[ImGuiCol_ScrollbarGrabActive]    = ImColor(95, 95, 100, 255); 
+        colors[ImGuiCol_CheckMark]              = ImColor(0, 122, 204, 255);   // #007acc
+        colors[ImGuiCol_SliderGrab]             = ImColor(0, 122, 204, 255);   // #007acc
+        colors[ImGuiCol_SliderGrabActive]       = ImColor(0, 122, 204, 255);
+        colors[ImGuiCol_Button]                 = ImColor(0, 122, 204, 255);   // #007acc
+        colors[ImGuiCol_ButtonHovered]          = ImColor(28, 151, 234, 255);  
+        colors[ImGuiCol_ButtonActive]           = ImColor(0, 122, 204, 255);  
+        colors[ImGuiCol_Header]                 = ImColor(45, 45, 48, 255);    // #2d2d30
+        colors[ImGuiCol_HeaderHovered]          = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_HeaderActive]           = ImColor(45, 45, 48, 255);
+        colors[ImGuiCol_Separator]              = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_SeparatorHovered]       = ImColor(62, 62, 66, 255);
+        colors[ImGuiCol_SeparatorActive]        = ImColor(62, 62, 66, 255);
+        colors[ImGuiCol_ResizeGrip]             = ImColor(62, 62, 66, 255);
+        colors[ImGuiCol_ResizeGripHovered]      = ImColor(62, 62, 66, 255);
+        colors[ImGuiCol_ResizeGripActive]       = ImColor(62, 62, 66, 255);
+        colors[ImGuiCol_Tab]                    = ImColor(45, 45, 48, 255);    // #2d2d30
+        colors[ImGuiCol_TabHovered]             = ImColor(62, 62, 66, 255);    // #3e3e42
+        colors[ImGuiCol_TabActive]              = ImColor(30, 30, 30, 255);    // #1e1e1e
+        colors[ImGuiCol_TabUnfocused]           = ImColor(45, 45, 48, 255);
+        colors[ImGuiCol_TabUnfocusedActive]     = ImColor(30, 30, 30, 255);
+
+        // Styling
+        style.WindowRounding    = 8.0f; 
+        style.ChildRounding     = 6.0f;
+        style.FrameRounding     = 4.0f;
+        style.PopupRounding     = 6.0f;
+        style.ScrollbarRounding = 4.0f;
+        style.GrabRounding      = 4.0f;
+        style.TabRounding       = 4.0f;
+
+        style.WindowPadding     = ImVec2(10.0f, 10.0f);
+        style.FramePadding      = ImVec2(8.0f, 6.0f);
+        style.ItemSpacing       = ImVec2(10.0f, 8.0f);
+        style.ItemInnerSpacing  = ImVec2(6.0f, 6.0f);
+    }
 //#define APP_USE_UNLIMITED_FRAME_RATE
 #ifdef _DEBUG
 #define APP_USE_VULKAN_DEBUG_REPORT
@@ -341,6 +400,7 @@ static void FramePresent(ImGui_ImplVulkanH_Window* wd)
 static GLFWwindow* Initialize(float* out_scale) 
 {
     glfwSetErrorCallback(GlfwErrorCallback);
+    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
     if (!glfwInit())
         return nullptr;
 
@@ -397,6 +457,16 @@ static GLFWwindow* Initialize(float* out_scale)
 
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
+    
+    // Rounded corners
+    style.WindowRounding = 8.0f;
+    style.ChildRounding = 8.0f;
+    style.FrameRounding = 6.0f;
+    style.PopupRounding = 6.0f;
+    style.ScrollbarRounding = 6.0f;
+    style.GrabRounding = 4.0f;
+    style.TabRounding = 6.0f;
+
     style.ScaleAllSizes(main_scale);
     style.FontScaleDpi = main_scale;
 

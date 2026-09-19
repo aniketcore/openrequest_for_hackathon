@@ -120,17 +120,14 @@ namespace UI
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.35f, 0.40f, 0.50f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.32f, 0.40f, 1.0f));
 
-        ImGui::Button("##hsplitter", ImVec2(-1.0f, 4.0f));
+        ImGui::Button("##hsplitter", ImVec2(-1.0f, 8.0f));
 
-        if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-        {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-        }
+        // Removed custom cursor changes so it relies purely on the OS default cursor.
         if (ImGui::IsItemActive())
         {
             this->requestHeight += ImGui::GetIO().MouseDelta.y;
-            if (this->requestHeight < 80.0f) this->requestHeight = 80.0f;
-            float max_height = ImGui::GetContentRegionAvail().y - 80.0f;
+            if (this->requestHeight < 40.0f) this->requestHeight = 40.0f;
+            float max_height = ImGui::GetContentRegionAvail().y - 4.0f;
             if (this->requestHeight > max_height) this->requestHeight = max_height;
         }
 

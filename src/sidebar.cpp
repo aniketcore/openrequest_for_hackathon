@@ -180,7 +180,7 @@ void RenderSidebar()
 
     // 4. Vertical Splitter Window
     ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + g_SidebarWidth, viewport->Pos.y));
-    ImGui::SetNextWindowSize(ImVec2(4.0f, viewport->Size.y));
+    ImGui::SetNextWindowSize(ImVec2(8.0f, viewport->Size.y));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -192,12 +192,9 @@ void RenderSidebar()
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.35f, 0.40f, 0.50f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.32f, 0.40f, 1.0f));
         
-        ImGui::Button("##vsplitter", ImVec2(4.0f, -1.0f));
+        ImGui::Button("##vsplitter", ImVec2(8.0f, -1.0f));
         
-        if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-        {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        }
+        // Removed custom cursor changes so it relies purely on the OS default cursor.
         if (ImGui::IsItemActive())
         {
             g_SidebarWidth += ImGui::GetIO().MouseDelta.x;
