@@ -5,6 +5,9 @@
 #include <memory>
 #include "httptypes.h"
 
+#include "httpengine.h"
+#include "TextEditor.h"
+
 namespace UI {
 
 class Tab {
@@ -22,7 +25,14 @@ class HttpTab : public Tab {
 public:
     std::string url;
     HTTP::Method method;
-    float requestHeight = 150.0f;
+    float requestHeight = -1.0f;
+    
+    HTTP::Engine eng;
+    HTTP::Request req;
+    std::unique_ptr<TextEditor> requestEditor;
+    std::unique_ptr<TextEditor> responseEditor;
+    std::string lastResponseText;
+    bool requestEditorInitialized = false;
 
     HttpTab(int id, std::string name) : Tab(id, std::move(name)), method(HTTP::GET) {}
 

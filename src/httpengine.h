@@ -7,10 +7,10 @@
 namespace HTTP
 {
 
-    void Init(){
+    inline void Init(){
         curl_global_init(CURL_GLOBAL_ALL);
     }
-    void Free(){
+    inline void Free(){
         curl_global_cleanup();
     }
     class Engine

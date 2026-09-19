@@ -45,20 +45,23 @@ namespace UI
 
     void HttpTab::Draw()
     {
-        static HTTP::Engine eng;
-        static HTTP::Request req;
-        static TextEditor requestEditor;
-        static TextEditor responseEditor;
-        static std::string lastResponseText;
-        static bool requestEditorInitialized = false;
+        ImGui::PushID(this->id);
         static bool responseReadOnly = true;
 
-        ConfigureTextEditor(requestEditor, false, TextEditor::Language::Json());
-        ConfigureTextEditor(responseEditor, true, TextEditor::Language::Json());
+        if (!requestEditor)
+        {
+            requestEditor = std::make_unique<TextEditor>();
+            ConfigureTextEditor(*requestEditor, false, TextEditor::Language::Json());
+        }
+        if (!responseEditor)
+        {
+            responseEditor = std::make_unique<TextEditor>();
+            ConfigureTextEditor(*responseEditor, true, TextEditor::Language::Json());
+        }
 
         if (!requestEditorInitialized)
         {
-            requestEditor.SetText(req.body);
+            requestEditor->SetText(req.body);
             requestEditorInitialized = true;
         }
 
@@ -67,13 +70,21 @@ namespace UI
             const auto &body = req.getresponse().body.value();
             if (body != lastResponseText)
             {
-                responseEditor.SetText(body);
+                responseEditor->SetText(body);
                 lastResponseText = body;
             }
         }
 
         // Clean layout with zero vertical item spacing between panels and splitter
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        // Clamp requestHeight to keep response panel slightly visible (min 40px)
+        float max_height = ImGui::GetContentRegionAvail().y - 40.0f;
+        if (this->requestHeight < 0.0f) {
+            this->requestHeight = ImGui::GetContentRegionAvail().y * 0.80f;
+        }
+        if (this->requestHeight > max_height) this->requestHeight = max_height;
+        if (this->requestHeight < 40.0f) this->requestHeight = 40.0f;
 
         // 1. Top Panel: Request Editor
         ImGui::BeginChild("##request_panel", ImVec2(0.0f, this->requestHeight), false, ImGuiWindowFlags_NoScrollbar);
@@ -96,10 +107,10 @@ namespace UI
 
         ImFont* editorFont = UI::Vulkan::g_MonoFont ? UI::Vulkan::g_MonoFont : ImGui::GetFont();
         ImGui::PushFont(editorFont);
-        requestEditor.Render("##request_body_editor", ImVec2(-1.0f, 160.0f), true);
+        requestEditor->Render("##request_body_editor", ImVec2(-1.0f, 160.0f), true);
         ImGui::PopFont();
 
-        req.body = requestEditor.GetText();
+        req.body = requestEditor->GetText();
         ImGui::Spacing();
 
         if (ImGui::Button("Send Request"))
@@ -107,7 +118,7 @@ namespace UI
             req.url = this->url;
             req.method = this->method;
             req.gotresponse = false;
-            req.body = requestEditor.GetText();
+            req.body = requestEditor->GetText();
 
             eng.dispatchrequest(&req);
             std::cout << "button pressed" << std::endl;
@@ -126,9 +137,6 @@ namespace UI
         if (ImGui::IsItemActive())
         {
             this->requestHeight += ImGui::GetIO().MouseDelta.y;
-            if (this->requestHeight < 40.0f) this->requestHeight = 40.0f;
-            float max_height = ImGui::GetContentRegionAvail().y - 4.0f;
-            if (this->requestHeight > max_height) this->requestHeight = max_height;
         }
 
         ImGui::PopStyleColor(3);
@@ -150,12 +158,12 @@ namespace UI
             ImGui::BeginGroup();
             if (ImGui::Button("Copy"))
             {
-                responseEditor.Copy();
+                responseEditor->Copy();
             }
             ImGui::SameLine();
             if (ImGui::Button("Clear"))
             {
-                responseEditor.ClearText();
+                responseEditor->ClearText();
                 if (resp.body.has_value()) resp.body.reset();
                 lastResponseText.clear();
             }
@@ -167,10 +175,10 @@ namespace UI
 
             if (resp.body.has_value())
             {
-                responseEditor.SetReadOnlyEnabled(responseReadOnly);
+                responseEditor->SetReadOnlyEnabled(responseReadOnly);
                 ImFont* editorFont = UI::Vulkan::g_MonoFont ? UI::Vulkan::g_MonoFont : ImGui::GetFont();
                 ImGui::PushFont(editorFont);
-                responseEditor.Render("##response_editor", ImGui::GetContentRegionAvail(), true);
+                responseEditor->Render("##response_editor", ImGui::GetContentRegionAvail(), true);
                 ImGui::PopFont();
             }
             else
@@ -187,6 +195,7 @@ namespace UI
         ImGui::EndChild();
 
         ImGui::PopStyleVar();
+        ImGui::PopID();
     }
 
     void WsTab::Draw()
