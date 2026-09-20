@@ -72,6 +72,29 @@ void RenderSidebar()
         }
 
         ImGui::Separator();
+        
+        ImGui::Spacing();
+        ImGui::Text("Collections");
+        if (ImGui::Button("Save##col")) UI::SaveCollectionToFile("collection.orq");
+        ImGui::SameLine();
+        if (ImGui::Button("Load##col")) UI::LoadCollectionFromFile("collection.orq");
+        
+        for (size_t i = 0; i < UI::g_Collection.size(); ++i) {
+            if (ImGui::Selectable(UI::g_Collection[i].name.c_str())) {
+                for (auto& t : g_Tabs) {
+                    if (t->id == g_ActiveTabId) {
+                        if (auto* http_tab = dynamic_cast<UI::HttpTab*>(t.get())) {
+                            http_tab->DeserializeFromString(UI::g_Collection[i].serialized);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Text("Tabs");
         ImGui::Spacing();
         if (ImGui::BeginChild("ScrollingRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar))
         {

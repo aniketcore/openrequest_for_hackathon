@@ -106,17 +106,32 @@ namespace HTTP
 
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_body);
                 curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-                if(req->method == GET)
-                    curl_easy_setopt(curl, CURLOPT_HTTPGET,true);
-                else if(req->method == POST)
-                    curl_easy_setopt(curl, CURLOPT_HTTPPOST,true);
-
-
+                if(req->method == GET) {
+                    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+                } else if(req->method == POST) {
+                    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+                } else if(req->method == PUT) {
+                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+                } else if(req->method == DELETE) {
+                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+                }
                 curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, write_header);
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &response);
 
+                struct curl_slist *chunk = NULL;
+                for (const auto& h : req->headers) {
+                    std::string header_str = h.first + ": " + h.second;
+                    chunk = curl_slist_append(chunk, header_str.c_str());
+                }
+                if (chunk) {
+                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+                }
+
                 /* Perform the request, result gets the return code */
                 result = curl_easy_perform(curl);
+                
+                if (chunk) curl_slist_free_all(chunk);
+
                 /* Check for errors */
                 if (result != CURLE_OK)
                     fprintf(stderr, "curl_easy_perform() failed: %s\n",

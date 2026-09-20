@@ -34,10 +34,23 @@ public:
     std::string lastResponseText;
     bool requestEditorInitialized = false;
 
+    std::vector<std::pair<std::string, std::string>> requestHeaders;
+
     HttpTab(int id, std::string name) : Tab(id, std::move(name)), method(HTTP::GET) {}
 
     void Draw() override;
+    
+    std::string SerializeToString(const std::string& name = "Unnamed");
+    void DeserializeFromString(const std::string& serialized);
 };
+
+struct SavedRequest {
+    std::string name;
+    std::string serialized;
+};
+extern std::vector<SavedRequest> g_Collection;
+void SaveCollectionToFile(const std::string& path);
+void LoadCollectionFromFile(const std::string& path);
 
 class WsTab : public Tab {
 public:

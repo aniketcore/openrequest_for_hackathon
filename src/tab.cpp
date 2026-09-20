@@ -2,6 +2,8 @@
 #include "sidebar.h"
 #include <iostream>
 #include <algorithm>
+#include <sstream>
+#include <fstream>
 #include "httpengine.h"
 #include <imgui_stdlib.h>
 #include "imgui_helpers.h"
@@ -42,6 +44,93 @@ namespace UI
     int g_ActiveTabId = 1;
     int g_NextTabId = 4;
     int g_SelectedTopTab = 0;
+    
+    std::vector<SavedRequest> g_Collection;
+
+    void SaveCollectionToFile(const std::string& path) {
+        std::ofstream out(path);
+        if (!out) return;
+        out << g_Collection.size() << "\n";
+        for (const auto& req : g_Collection) {
+            out << req.serialized.size() << "\n" << req.serialized;
+        }
+    }
+
+    void LoadCollectionFromFile(const std::string& path) {
+        std::ifstream in(path);
+        if (!in) return;
+        g_Collection.clear();
+        std::string line;
+        if (std::getline(in, line)) {
+            try {
+                int count = std::stoi(line);
+                for (int i=0; i<count; ++i) {
+                    if (std::getline(in, line)) {
+                        int size = std::stoi(line);
+                        std::string serialized;
+                        serialized.resize(size);
+                        in.read(&serialized[0], size);
+                        
+                        // Extract name from first line of serialized string
+                        std::string name = "Unnamed";
+                        size_t pos = serialized.find('\n');
+                        if (pos != std::string::npos) {
+                            name = serialized.substr(0, pos);
+                        }
+                        g_Collection.push_back({name, serialized});
+                    }
+                }
+            } catch (...) {}
+        }
+    }
+
+    std::string HttpTab::SerializeToString(const std::string& name) {
+        std::string export_str = name + "\n" + 
+                                 std::to_string(static_cast<int>(this->method)) + "\n" +
+                                 this->url + "\n" +
+                                 std::to_string(this->requestHeaders.size()) + "\n";
+        for(auto& h : this->requestHeaders) {
+            export_str += h.first + "\n" + h.second + "\n";
+        }
+        std::string body = requestEditor ? requestEditor->GetText() : "";
+        export_str += std::to_string(body.length()) + "\n" + body;
+        return export_str;
+    }
+
+    void HttpTab::DeserializeFromString(const std::string& serialized) {
+        std::istringstream iss(serialized);
+        std::string line;
+        std::getline(iss, line); // ignore name
+        if (std::getline(iss, line)) {
+            try { this->method = static_cast<HTTP::Method>(std::stoi(line)); } catch(...) {}
+        }
+        if (std::getline(iss, line)) {
+            this->url = line;
+        }
+        if (std::getline(iss, line)) {
+            try {
+                int num_headers = std::stoi(line);
+                this->requestHeaders.clear();
+                for(int i=0; i<num_headers; ++i) {
+                    std::string k, v;
+                    std::getline(iss, k);
+                    std::getline(iss, v);
+                    this->requestHeaders.push_back({k, v});
+                }
+            } catch(...) {}
+        }
+        if (std::getline(iss, line)) {
+            try {
+                int body_len = std::stoi(line);
+                std::string body;
+                if (body_len > 0) {
+                    body.resize(body_len);
+                    iss.read(&body[0], body_len);
+                }
+                if (requestEditor) requestEditor->SetText(body);
+            } catch(...) {}
+        }
+    }
 
     void HttpTab::Draw()
     {
@@ -91,6 +180,22 @@ namespace UI
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
 
         ImGui::Text("HTTP Request Settings");
+        ImGui::SameLine();
+        if (ImGui::Button("Copy to Clipboard")) {
+            ImGui::SetClipboardText(this->SerializeToString("Clipboard Request").c_str());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Paste from Clipboard")) {
+            const char* clip = ImGui::GetClipboardText();
+            if (clip) {
+                this->DeserializeFromString(clip);
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save to Collection")) {
+            std::string name = "Saved Request " + std::to_string(g_Collection.size() + 1);
+            g_Collection.push_back({name, this->SerializeToString(name)});
+        }
         ImGui::Spacing();
         ImGui::InputText("#URL", &this->url, 0, nullptr, nullptr);
 
@@ -101,6 +206,26 @@ namespace UI
             this->method = static_cast<HTTP::Method>(current_method);
         }
 
+        ImGui::Spacing();
+        ImGui::Text("Headers");
+        ImGui::SameLine();
+        if (ImGui::Button("+##add_header")) {
+            requestHeaders.push_back({"", ""});
+        }
+        for (size_t i = 0; i < requestHeaders.size(); ++i) {
+            ImGui::PushID(static_cast<int>(i));
+            ImGui::SetNextItemWidth(150.0f);
+            ImGui::InputText("##key", &requestHeaders[i].first);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(250.0f);
+            ImGui::InputText("##value", &requestHeaders[i].second);
+            ImGui::SameLine();
+            if (ImGui::Button("X")) {
+                requestHeaders.erase(requestHeaders.begin() + i);
+                --i;
+            }
+            ImGui::PopID();
+        }
         ImGui::Spacing();
         ImGui::Text("Request Body");
         ImGui::Separator();
@@ -119,6 +244,13 @@ namespace UI
             req.method = this->method;
             req.gotresponse = false;
             req.body = requestEditor->GetText();
+
+            req.headers.clear();
+            for (const auto& h : requestHeaders) {
+                if (!h.first.empty()) {
+                    req.headers[h.first] = h.second;
+                }
+            }
 
             eng.dispatchrequest(&req);
             std::cout << "button pressed" << std::endl;
